@@ -44,33 +44,42 @@ function calcStoryTotalChars(entries) {
   return entries.reduce((sum, e) => sum + (e.content?.length || 0), 0);
 }
 
-function updateStoryStatus(story) {
-  const totalChars = calcStoryTotalChars(story.entries);
-  const participants = new Set(story.entries.map(e => e.author)).size;
-  story.totalChars = totalChars;
-  story.participantCount = participants;
-  story.locked = totalChars >= MAX_CHARS_PER_STORY || participants >= MAX_PARTICIPANTS;
-  story.lockedReason = totalChars >= MAX_CHARS_PER_STORY
+function computeStoryStatus(entries) {
+  const totalChars = calcStoryTotalChars(entries || []);
+  const participantCount = new Set((entries || []).map(e => e.author)).size;
+  const locked = totalChars >= MAX_CHARS_PER_STORY || participantCount >= MAX_PARTICIPANTS;
+  const lockedReason = totalChars >= MAX_CHARS_PER_STORY
     ? `已达到字数上限（${totalChars}/${MAX_CHARS_PER_STORY}字）`
-    : participants >= MAX_PARTICIPANTS
-      ? `已达到接龙人数上限（${participants}/${MAX_PARTICIPANTS}人）`
+    : participantCount >= MAX_PARTICIPANTS
+      ? `已达到接龙人数上限（${participantCount}/${MAX_PARTICIPANTS}人）`
       : null;
+  return { totalChars, participantCount, locked, lockedReason };
+}
+
+function updateStoryStatus(story) {
+  const status = computeStoryStatus(story.entries);
+  story.totalChars = status.totalChars;
+  story.participantCount = status.participantCount;
+  story.locked = status.locked;
+  story.lockedReason = status.lockedReason;
 }
 
 function formatStoryDetail(story) {
+  const status = computeStoryStatus(story.entries);
+  const entries = (story.entries || []).map((e, idx) => ({ ...e, order: idx + 1 }));
   return {
     id: story.id,
     title: story.title,
     createdAt: story.createdAt,
     updatedAt: story.updatedAt,
-    entryCount: story.entries.length,
-    participantCount: story.participantCount,
-    totalChars: story.totalChars,
+    entryCount: entries.length,
+    participantCount: status.participantCount,
+    totalChars: status.totalChars,
     maxChars: MAX_CHARS_PER_STORY,
     maxParticipants: MAX_PARTICIPANTS,
-    locked: story.locked,
-    lockedReason: story.lockedReason,
-    entries: story.entries
+    locked: status.locked,
+    lockedReason: status.lockedReason,
+    entries
   };
 }
 
@@ -101,26 +110,26 @@ export function getAllStories() {
   const data = readData();
   return Object.values(data.stories)
     .sort((a, b) => b.updatedAt - a.updatedAt)
-    .map(s => ({
-      id: s.id,
-      title: s.title,
-      createdAt: s.createdAt,
-      updatedAt: s.updatedAt,
-      entryCount: s.entries.length,
-      participantCount: s.participantCount,
-      totalChars: s.totalChars,
-      locked: s.locked,
-      lockedReason: s.lockedReason
-    }));
+    .map(s => {
+      const status = computeStoryStatus(s.entries);
+      return {
+        id: s.id,
+        title: s.title,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        entryCount: (s.entries || []).length,
+        participantCount: status.participantCount,
+        totalChars: status.totalChars,
+        locked: status.locked,
+        lockedReason: status.lockedReason
+      };
+    });
 }
 
 export function getStoryById(id) {
   const data = readData();
   const story = data.stories[id];
   if (!story) return null;
-  updateStoryStatus(story);
-  data.stories[id] = story;
-  writeData(data);
   return formatStoryDetail(story);
 }
 
@@ -130,18 +139,18 @@ export function addEntry(storyId, { content, author }) {
   if (!story) {
     return { success: false, error: '故事不存在', code: 404 };
   }
-  updateStoryStatus(story);
-  if (story.locked) {
-    return { success: false, error: story.lockedReason || '故事已锁定', code: 409 };
+  const currentStatus = computeStoryStatus(story.entries);
+  if (currentStatus.locked) {
+    return { success: false, error: currentStatus.lockedReason || '故事已锁定', code: 409 };
   }
   const contentLen = content?.length || 0;
   if (contentLen === 0) {
     return { success: false, error: '续写内容不能为空', code: 400 };
   }
-  if (calcStoryTotalChars(story.entries) + contentLen > MAX_CHARS_PER_STORY) {
+  if (currentStatus.totalChars + contentLen > MAX_CHARS_PER_STORY) {
     return {
       success: false,
-      error: `内容过长，当前剩余可容纳 ${MAX_CHARS_PER_STORY - calcStoryTotalChars(story.entries)} 字`,
+      error: `内容过长，当前剩余可容纳 ${MAX_CHARS_PER_STORY - currentStatus.totalChars} 字`,
       code: 413
     };
   }
