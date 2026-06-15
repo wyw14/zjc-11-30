@@ -181,4 +181,133 @@ export function resetStory(storyId) {
   return { success: true, story: formatStoryDetail(story) };
 }
 
+function diagnoseStory(story) {
+  const issues = [];
+
+  const entries = story.entries || [];
+
+  let expectedOrder = 1;
+  const orderIssues = [];
+  entries.forEach((entry, idx) => {
+    if (entry.order !== expectedOrder) {
+      orderIssues.push({
+        index: idx,
+        entryId: entry.id,
+        expected: expectedOrder,
+        actual: entry.order
+      });
+    }
+    expectedOrder++;
+  });
+  if (orderIssues.length > 0) {
+    issues.push({
+      type: 'order',
+      name: '段落顺序',
+      expected: `1-${entries.length}`,
+      actual: '存在不连续或错位',
+      details: orderIssues
+    });
+  }
+
+  const actualChars = calcStoryTotalChars(entries);
+  if (actualChars !== (story.totalChars || 0)) {
+    issues.push({
+      type: 'totalChars',
+      name: '总字数',
+      expected: actualChars,
+      actual: story.totalChars || 0
+    });
+  }
+
+  const actualParticipants = new Set(entries.map(e => e.author)).size;
+  if (actualParticipants !== (story.participantCount || 0)) {
+    issues.push({
+      type: 'participantCount',
+      name: '参与人数',
+      expected: actualParticipants,
+      actual: story.participantCount || 0
+    });
+  }
+
+  return {
+    storyId: story.id,
+    title: story.title,
+    entryCount: entries.length,
+    hasIssues: issues.length > 0,
+    issues
+  };
+}
+
+export function diagnoseAllStories() {
+  const data = readData();
+  const results = Object.values(data.stories).map(s => diagnoseStory(s));
+  const totalStories = results.length;
+  const issueCount = results.filter(r => r.hasIssues).length;
+  const totalIssues = results.reduce((sum, r) => sum + r.issues.length, 0);
+
+  return {
+    totalStories,
+    issueCount,
+    totalIssues,
+    stories: results
+  };
+}
+
+export function fixStory(storyId) {
+  const data = readData();
+  const story = data.stories[storyId];
+  if (!story) {
+    return { success: false, error: '故事不存在', code: 404 };
+  }
+
+  const entries = story.entries || [];
+  entries.forEach((entry, idx) => {
+    entry.order = idx + 1;
+  });
+
+  updateStoryStatus(story);
+  writeData(data);
+
+  const diagnosis = diagnoseStory(story);
+  return {
+    success: true,
+    fixedIssues: true,
+    story: formatStoryDetail(story),
+    diagnosis
+  };
+}
+
+export function fixAllStories() {
+  const data = readData();
+  let fixedCount = 0;
+  const results = [];
+
+  Object.values(data.stories).forEach(story => {
+    const before = diagnoseStory(story);
+    if (before.hasIssues) {
+      const entries = story.entries || [];
+      entries.forEach((entry, idx) => {
+        entry.order = idx + 1;
+      });
+      updateStoryStatus(story);
+      fixedCount++;
+    }
+    results.push({
+      storyId: story.id,
+      title: story.title,
+      hadIssues: before.hasIssues
+    });
+  });
+
+  if (fixedCount > 0) {
+    writeData(data);
+  }
+
+  return {
+    success: true,
+    totalStories: Object.keys(data.stories).length,
+    fixedCount
+  };
+}
+
 export { MAX_PARTICIPANTS, MAX_CHARS_PER_STORY };

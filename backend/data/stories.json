@@ -21,20 +21,60 @@
     },
     "mqcygyrz28j8ws": {
       "id": "mqcygyrz28j8ws",
-      "title": "T",
+      "title": "数据错乱的故事",
       "createdAt": 1781391443478,
       "updatedAt": 1781391443478,
       "entries": [
         {
           "id": "mqcygys625at02",
-          "author": "A",
-          "content": "夜幕降临，繁星点点的夜晚...",
+          "author": "作者A",
+          "content": "这是第一段，很长的内容用来测试字数统计...",
           "order": 1,
           "createdAt": 1781391443478
+        },
+        {
+          "id": "mqcygys725bt03",
+          "author": "作者B",
+          "content": "第二段内容继续故事发展...",
+          "order": 2,
+          "createdAt": 1781391443479
+        },
+        {
+          "id": "mqcygys825ct04",
+          "author": "作者C",
+          "content": "第三段内容高潮部分来了...",
+          "order": 3,
+          "createdAt": 1781391443480
         }
       ],
-      "totalChars": 15,
-      "participantCount": 1,
+      "totalChars": 50,
+      "participantCount": 3,
+      "locked": false,
+      "lockedReason": null
+    },
+    "mqdxtest001story": {
+      "id": "mqdxtest001story",
+      "title": "字数错误的故事",
+      "createdAt": 1781391500000,
+      "updatedAt": 1781391500000,
+      "entries": [
+        {
+          "id": "mqdxtest001e1",
+          "author": "张三",
+          "content": "春天来了，万物复苏，大地一片生机勃勃的景象...",
+          "order": 1,
+          "createdAt": 1781391500000
+        },
+        {
+          "id": "mqdxtest001e2",
+          "author": "李四",
+          "content": "小河边柳树发芽，花朵盛开，蝴蝶在花丛中飞舞...",
+          "order": 2,
+          "createdAt": 1781391500001
+        }
+      ],
+      "totalChars": 48,
+      "participantCount": 2,
       "locked": false,
       "lockedReason": null
     }

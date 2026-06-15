@@ -6,6 +6,9 @@ import {
   getStoryById,
   addEntry,
   resetStory,
+  diagnoseAllStories,
+  fixStory,
+  fixAllStories,
   MAX_PARTICIPANTS,
   MAX_CHARS_PER_STORY
 } from './storage.js';
@@ -108,6 +111,39 @@ app.post('/api/admin/stories/:id/reset', (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '重置故事失败' });
+  }
+});
+
+app.get('/api/admin/diagnose', (_req, res) => {
+  try {
+    const result = diagnoseAllStories();
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '数据体检失败' });
+  }
+});
+
+app.post('/api/admin/stories/:id/fix', (req, res) => {
+  try {
+    const result = fixStory(req.params.id);
+    if (!result.success) {
+      return res.status(result.code || 400).json({ error: result.error });
+    }
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '修复故事失败' });
+  }
+});
+
+app.post('/api/admin/fix-all', (_req, res) => {
+  try {
+    const result = fixAllStories();
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '批量修复失败' });
   }
 });
 

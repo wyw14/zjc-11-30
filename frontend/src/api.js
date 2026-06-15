@@ -19,7 +19,10 @@ export const api = {
   getStory: (id) => request.get(`/stories/${id}`),
   createStory: (data) => request.post('/stories', data),
   addEntry: (id, data) => request.post(`/stories/${id}/entries`, data),
-  resetStory: (id) => request.post(`/admin/stories/${id}/reset`)
+  resetStory: (id) => request.post(`/admin/stories/${id}/reset`),
+  diagnose: () => request.get('/admin/diagnose'),
+  fixStory: (id) => request.post(`/admin/stories/${id}/fix`),
+  fixAllStories: () => request.post('/admin/fix-all')
 }
 
 export default api
